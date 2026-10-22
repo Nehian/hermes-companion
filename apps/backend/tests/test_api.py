@@ -178,7 +178,7 @@ def test_network_allowlist(tmp_path, monkeypatch):
     monkeypatch.setenv("DB_PATH", str(tmp_path / "net.db"))
     monkeypatch.setenv("ADMIN_KEY", "test-admin-key")
     monkeypatch.setenv("ALLOWED_NETS", "127.0.0.0/8,100.64.0.0/10,172.16.0.0/12")
-    cases = {"100.96.174.77": 200, "127.0.0.1": 200, "172.31.0.1": 200, "192.168.0.50": 403, "8.8.8.8": 403}
+    cases = {"100.64.0.7": 200, "127.0.0.1": 200, "172.31.0.1": 200, "192.168.0.50": 403, "8.8.8.8": 403}
 
     def from_ip(ip):  # present the request as coming from this client address
         async def wrapped(scope, receive, send):
