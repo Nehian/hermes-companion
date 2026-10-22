@@ -1,10 +1,32 @@
 # Hermes Companion
 
-**Schedule alarms and notifications on your Android phone from anything that can make an HTTP request, so you never lose contact with your assistant ("Hermes").**
+**A reminder you cannot miss: your server (or AI assistant, or script) schedules real alarms on your Android phone, and the phone rings them itself, even offline and on silent.**
 
-Normal notifications get missed: the phone is on silent, battery saving delays them, the app is asleep. Hermes Companion puts the schedule *on the phone*. Your assistant, script or service sends reminders ahead of time; the phone rings them itself with a real alarm, shows buttons you defined, and reports what you pressed. If the server or the internet is down at that moment, nothing is lost.
+Status: version 0.1.0, running daily on a real Samsung phone. Android only. Apache-2.0.
 
-"Hermes" is just the name of the sender in this project. It can be an AI assistant, a cron job, a home-automation hub, or you with `curl`.
+## Who it is for
+- You run an AI assistant, a home server or scripts, and want them to reach you in a way you will actually notice.
+- You have reminders that matter (medication, prayer times, a shift, a deadline) and a normal notification is not reliable enough.
+- You want to stay in control: your own server, your own data, no account, no subscription.
+
+## The problem
+Push notifications arrive through a chain: your server, a push service, your phone's battery manager, the app. Break any link (silent mode, battery saving, no signal, a sleeping app) and the reminder is late or lost.
+
+## How this is different
+The schedule lives **on the phone**. The server sends reminders ahead of time; the phone sets exact Android alarms and rings them on its own. The server is only needed to hand over the schedule and to collect your answers.
+
+| | Push notification apps (ntfy, Pushover and similar) | Phone automation (Tasker and similar) | **Hermes Companion** |
+|---|---|---|---|
+| Who decides the reminder | Your server, at the moment it fires | You, by hand on the phone | Your server, ahead of time |
+| Needs a connection when it fires | Yes | No | **No** |
+| Real alarm that overrides silent mode | Usually a notification | Yes, if you build it | **Yes, built in** |
+| Answers (Done, Snooze, Missed) come back to the sender | Limited | Not without extra work | **Yes, stored and uploaded later** |
+| Cancels the rest when you answer once | No | Not without extra work | **Yes, by group** |
+
+Those apps are good at what they do; this one is for the case where a missed reminder is not acceptable.
+
+## A real example: five daily prayers
+A script reads a prayer timetable once a day and sends each prayer as a group of reminders: a heads-up, a "last chance before it ends" alarm, and a check-in. Tapping **Prayed** on any of them cancels the rest of that prayer's reminders; tapping nothing makes the check-in ask again. If the phone is offline at prayer time, the alarms ring anyway and the answers upload afterwards. The same pattern works for medication, shift handovers or a daily review.
 
 ## What it does
 - **Rings like an alarm**: exact-time alarm on the alarm volume (silent mode does not mute it), wakes the screen and shows over the lock screen. When you are using the phone it appears as a banner instead.
@@ -77,7 +99,7 @@ Open the app (or wait up to ~15 minutes) so the phone syncs, lock it, and wait. 
 - The phone syncs when the app opens, about every 15 minutes in the background, and just before each alarm, so send schedules ahead of time (hours, not seconds).
 - It uses Android's exact-alarm permission, which Google Play restricts to alarm and calendar apps. Expect to sideload or build it yourself.
 - It is built for one person: one admin key, one server per user, as many paired phones as you like.
-- Not tested on real hardware by the author at the time of writing beyond the Android 16 emulator; reports from real phones are very welcome.
+- Tested by the author on one real Samsung phone and the Android 16 emulator. Battery behaviour differs between makers, so reports from other phones are very welcome.
 
 ## Develop and test
 ```sh

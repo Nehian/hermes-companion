@@ -24,3 +24,6 @@ __pycache__/
 .idea/
 *.iml
 .DS_Store
+
+# third-party design references, not ours to publish
+inspiration/
