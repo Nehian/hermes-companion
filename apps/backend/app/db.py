@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS jobs (
 CREATE INDEX IF NOT EXISTS idx_jobs_revision ON jobs(revision);
 CREATE INDEX IF NOT EXISTS idx_jobs_group ON jobs(cancel_group);
 
+-- Owner's priority choice per category (set from the dashboard). It wins over what the sender asked for.
+CREATE TABLE IF NOT EXISTS category_priority (
+    category TEXT PRIMARY KEY,
+    priority TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS responses (
     response_id TEXT PRIMARY KEY,
     job_id TEXT NOT NULL,

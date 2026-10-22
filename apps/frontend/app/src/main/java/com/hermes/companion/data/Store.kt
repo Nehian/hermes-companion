@@ -266,12 +266,12 @@ class Store private constructor(context: Context) {
         }
     }
 
-    fun insertLocalTestJob(fireAtMs: Long): String {
+    fun insertLocalTestJob(fireAtMs: Long, priority: String = "normal"): String {
         val id = "local-test-$fireAtMs"
         val o = JSONObject()
-            .put("job_id", id).put("category", "test").put("title", "Test alarm")
+            .put("job_id", id).put("category", "test").put("title", if (priority == "normal") "Test alarm" else "Priority test alarm")
             .put("message", "If you can hear this, alarms work on this phone.")
-            .put("fire_at", Instant.ofEpochMilli(fireAtMs).toString()).put("priority", "critical")
+            .put("fire_at", Instant.ofEpochMilli(fireAtMs).toString()).put("priority", priority)
             .put("delivery", "alarm").put("sound_profile", "default").put("revision", 0)
             .put(
                 "actions",

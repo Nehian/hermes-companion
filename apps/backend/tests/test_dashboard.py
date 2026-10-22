@@ -137,3 +137,38 @@ def test_edit_by_clock_time_uses_the_reminders_own_timezone(dash):
     assert r.json()["fire_at"] == "2030-07-01T12:05:00Z"  # 13:05 British Summer Time
     assert dash.get(f"/admin/jobs/{job['job_id']}", headers=ADMIN).json()["expires_at"] == "2030-07-01T13:05:00Z"
     assert dash.patch(f"/dashboard/api/reminders/{job['job_id']}", json={"time": "25:00"}).status_code == 422
+
+
+def test_priority_switch_covers_category_and_future_reminders(dash):
+    a = new_job(dash, fire_at=soon(60), category="prayer", cancel_group="p1", title="A")
+    b = new_job(dash, fire_at=soon(90), category="prayer", cancel_group="p2", title="B")
+    other = new_job(dash, fire_at=soon(90), category="health", title="C")
+    assert login(dash).status_code == 200
+    r = dash.post("/dashboard/api/priority", json={"job_id": a["job_id"], "priority": "high"})
+    assert r.status_code == 200 and r.json() == {"priority": "high", "scope": "category", "changed": 2}
+    pri = {j["title"]: j["priority"] for j in dash.get("/dashboard/api/state").json()["jobs"]}
+    assert pri == {"A": "high", "B": "high", "C": "normal"}
+    # a reminder created later in the same category inherits it, even if the sender asks for normal
+    late = new_job(dash, fire_at=soon(120), category="prayer", title="D", priority="normal")
+    assert late["priority"] == "high"
+    # switching off wins over a sender that asks for high
+    dash.post("/dashboard/api/priority", json={"job_id": a["job_id"], "priority": "normal"})
+    assert new_job(dash, fire_at=soon(150), category="prayer", title="E", priority="high")["priority"] == "normal"
+
+
+def test_priority_scopes_for_uncategorised_reminders(dash):
+    g1 = new_job(dash, fire_at=soon(60), cancel_group="g", title="G1")
+    g2 = new_job(dash, fire_at=soon(90), cancel_group="g", title="G2")
+    solo = new_job(dash, fire_at=soon(90), title="Solo")
+    assert login(dash).status_code == 200
+    assert dash.post("/dashboard/api/priority", json={"job_id": g1["job_id"], "priority": "high"}).json()["scope"] == "group"
+    assert dash.post("/dashboard/api/priority", json={"job_id": solo["job_id"], "priority": "high"}).json()["scope"] == "reminder"
+    pri = {j["title"]: j["priority"] for j in dash.get("/dashboard/api/state").json()["jobs"]}
+    assert pri == {"G1": "high", "G2": "high", "Solo": "high"}
+    assert dash.post("/dashboard/api/priority", json={"job_id": "nope", "priority": "high"}).status_code == 404
+    assert dash.post("/dashboard/api/priority", json={"job_id": g1["job_id"], "priority": "urgent"}).status_code == 422
+
+
+def test_priority_needs_sign_in(dash):
+    job = new_job(dash, fire_at=soon(60))
+    assert dash.post("/dashboard/api/priority", json={"job_id": job["job_id"], "priority": "high"}).status_code == 401

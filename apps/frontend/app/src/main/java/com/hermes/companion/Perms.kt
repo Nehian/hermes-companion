@@ -12,6 +12,8 @@ data class PermStatus(
     val fullScreen: Boolean = true,
     val exactAlarm: Boolean = true,
     val batteryUnrestricted: Boolean = true,
+    /** Needed only so priority reminders can open full screen while the phone is in use. */
+    val overlay: Boolean = true,
 ) {
     /** Without these the alarm cannot ring or show; battery settings only affect reliability on some phones. */
     val criticalOk get() = notifications && fullScreen && exactAlarm
@@ -23,5 +25,6 @@ object Perms {
         fullScreen = Build.VERSION.SDK_INT < 34 || context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent(),
         exactAlarm = AlarmScheduler.canScheduleExact(context),
         batteryUnrestricted = context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName),
+        overlay = android.provider.Settings.canDrawOverlays(context),
     )
 }

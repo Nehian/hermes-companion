@@ -117,9 +117,16 @@ const openCards=new Set();
 function card(g,editable){const c=el('div','card stack');const h=el('button','head');h.type='button';h.setAttribute('aria-expanded',String(openCards.has(g.key)));
   const top=el('div','row');top.append(el('span','nm',g.title),el('span','state '+g.state,STATE[g.state]));
   const parts=[g.jobs.length+(g.jobs.length===1?' reminder':' reminders'),g.alarms+(g.alarms===1?' alarm':' alarms')];if(g.banners)parts.push(g.banners+(g.banners===1?' banner':' banners'));
+  const openJobs=g.jobs.filter(j=>j.state==='scheduled'||j.state==='fired'||j.state==='cancelled');const isPri=openJobs.length>0&&openJobs.every(j=>j.priority!=='normal');
+  if(isPri)parts.unshift('priority');
   if(g.next&&g.state==='upcoming')parts.push('next '+hhmm(T(g.next.fire_at)));if(g.category&&g.category!=='generic')parts.push(g.category);
   h.append(top,el('div','small muted',parts.join(' · ')));c.append(h);
   const body=el('div');body.hidden=!openCards.has(g.key);
+  if(editable&&openJobs.length){const pr=el('label','sw');pr.style.padding='10px 0 2px';const pc=el('input');pc.type='checkbox';pc.checked=isPri;pr.append(pc,el('span','','Priority'));
+    const cat=g.category&&g.category!=='generic'?g.category:'';
+    const help=el('div','small muted',cat?'Opens full screen on your phone, even while you use it. Applies to every "'+cat+'" reminder, including future ones.':'Opens full screen on your phone, even while you use it.');
+    pc.onchange=async()=>{try{const r=await send('POST','/api/priority',{job_id:openJobs[0].job_id,priority:pc.checked?'high':'normal'});toast(pc.checked?'Priority on':'Priority off');await load(true)}catch(e){pc.checked=!pc.checked;if(e.message!=='auth')toast(e.message)}};
+    body.append(pr,help)}
   g.jobs.forEach(j=>body.append(reminder(j,editable)));
   if(editable&&(g.state==='upcoming'||g.state==='noanswer')){const d=el('button','btn','Mark done');d.type='button';d.style.alignSelf='flex-start';
     d.onclick=async()=>{try{d.disabled=true;await send('POST','/api/reminders/'+g.jobs[0].job_id+'/done');toast('Marked done');await load(true)}catch(e){d.disabled=false;if(e.message!=='auth')toast(e.message)}};body.append(d)}

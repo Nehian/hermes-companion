@@ -23,7 +23,7 @@ STYLES = {
 HISTORY_DAYS = 14
 FUTURE_DAYS = 8
 VISIBLE = ("job_id", "title", "message", "fire_at", "tz", "expires_at", "delivery", "sound_profile", "state",
-           "category", "cancel_group", "routine_id")
+           "category", "cancel_group", "routine_id", "priority")
 
 
 class ReminderEdit(BaseModel):
@@ -38,6 +38,11 @@ class ReminderEdit(BaseModel):
     @classmethod
     def utc(cls, v):
         return None if v is None else to_utc(v)
+
+
+class PriorityIn(BaseModel):
+    job_id: str
+    priority: Literal["normal", "high"]
 
 
 def style_of(job: dict) -> str:
@@ -82,6 +87,11 @@ def build_router(require_session) -> APIRouter:
         phones = [dict(p) for p in conn.execute(
             "SELECT name, created_at, last_seen_at FROM devices WHERE revoked_at IS NULL ORDER BY created_at")]
         return {"now": now_iso(), "jobs": jobs, "answers": answers, "phones": phones}
+
+    @router.post("/priority")
+    def priority(body: PriorityIn, conn: sqlite3.Connection = Depends(get_db)):
+        with tx(conn):
+            return _guard(lambda: services.set_priority(conn, body.job_id, body.priority))
 
     @router.patch("/reminders/{job_id}")
     def edit(job_id: str, body: ReminderEdit, conn: sqlite3.Connection = Depends(get_db)):

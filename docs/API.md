@@ -84,6 +84,7 @@ Served at `/dashboard` only when `DASHBOARD_PASSWORD_HASH` is set (run `dashboar
 |---|---|
 | `GET /dashboard/api/state` | reminders (last 14 days to next 8), phone answers, paired phones (no keys or tokens) |
 | `PATCH /dashboard/api/reminders/{job_id}` | change `title`, `fire_at` (or `time` as `HH:MM` in the reminder's own timezone), `style` (`alarm`, `alarm-silent`, `banner`, `banner-silent`) or `enabled` |
+| `POST /dashboard/api/priority` | `{ "job_id": "…", "priority": "high" or "normal" }`: the owner's priority switch. For a named `category` it applies to all open reminders in it and to every future one (it wins over what the sender asked for); otherwise to the reminder's group, or the single reminder |
 | `POST /dashboard/api/reminders/{job_id}/done` | mark the reminder's whole group done (records a "completed" answer) |
 
 Switching a reminder off cancels it; switching it back on is allowed until its time has passed.

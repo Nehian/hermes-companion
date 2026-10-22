@@ -100,6 +100,14 @@ fun SettingsScreen(state: UiState, vm: MainViewModel) {
         PermRow("Unrestricted battery use", state.perms.batteryUnrestricted, "Allow") {
             context.startActivity(openAppSettings(context, Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS))
         }
+        PermRow("Show priority alarms over other apps", state.perms.overlay, "Allow") {
+            context.startActivity(openAppSettings(context, Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
+        }
+        Text(
+            "Reminders marked Priority on the dashboard open full screen even while you are using the phone. This needs the " +
+                "\"over other apps\" permission. Without it they appear as a banner at the top.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
         Text(
             "Alarms ring on the phone's alarm volume, even when the phone is on silent. " +
                 "Keep the alarm volume up (press a volume key and open the volume panel to check it).",
@@ -108,7 +116,8 @@ fun SettingsScreen(state: UiState, vm: MainViewModel) {
 
         HorizontalDivider()
         Text("Test", style = MaterialTheme.typography.titleMedium)
-        OutlinedButton(onClick = vm::testAlarm, modifier = Modifier.fillMaxWidth()) { Text("Ring a test alarm in 10 seconds") }
+        OutlinedButton(onClick = { vm.testAlarm(false) }, modifier = Modifier.fillMaxWidth()) { Text("Ring a test alarm in 10 seconds") }
+        OutlinedButton(onClick = { vm.testAlarm(true) }, modifier = Modifier.fillMaxWidth()) { Text("Ring a priority test alarm in 10 seconds") }
     }
 }
 

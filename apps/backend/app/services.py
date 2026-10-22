@@ -91,6 +91,8 @@ def expire_due(conn: sqlite3.Connection) -> None:
 
 
 def create_job(conn: sqlite3.Connection, data: JobIn) -> dict:
+    rule = conn.execute("SELECT priority FROM category_priority WHERE category = ?", (data.category,)).fetchone()
+    priority = rule["priority"] if rule else data.priority
     job_id = data.job_id or uuid.uuid4().hex
     if conn.execute("SELECT 1 FROM jobs WHERE job_id = ?", (job_id,)).fetchone():
         raise Conflict(job_id)
@@ -102,7 +104,7 @@ def create_job(conn: sqlite3.Connection, data: JobIn) -> dict:
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?, ?)""",
         (
             job_id, data.routine_id, data.category, data.title, data.message, fmt(data.fire_at), data.tz,
-            fmt(data.expires_at) if data.expires_at else None, data.priority, data.delivery,
+            fmt(data.expires_at) if data.expires_at else None, priority, data.delivery,
             data.sound_profile, json.dumps([a.model_dump() for a in data.actions]),
             data.cancel_group, next_rev(conn), now, now,
         ),
@@ -166,6 +168,26 @@ def enable_job(conn: sqlite3.Connection, job_id: str) -> dict:
     )
     log_event(conn, "job_enabled", job_id=job_id)
     return job_to_dict(get_job(conn, job_id))
+
+
+def set_priority(conn: sqlite3.Connection, job_id: str, priority: str) -> dict:
+    """Owner's priority switch. A named category remembers the choice for future reminders too; otherwise it covers
+    the reminder's group, or the single reminder."""
+    row = get_job(conn, job_id)
+    if row["category"] != "generic":
+        conn.execute("INSERT OR REPLACE INTO category_priority(category, priority) VALUES (?, ?)", (row["category"], priority))
+        where, arg, scope = "category = ?", row["category"], "category"
+    elif row["cancel_group"]:
+        where, arg, scope = "cancel_group = ?", row["cancel_group"], "group"
+    else:
+        where, arg, scope = "job_id = ?", job_id, "reminder"
+    ids = [r["job_id"] for r in conn.execute(
+        f"SELECT job_id FROM jobs WHERE {where} AND state IN ('scheduled', 'fired') AND priority != ?", (arg, priority))]
+    for jid in ids:
+        conn.execute("UPDATE jobs SET priority = ?, revision = ?, updated_at = ? WHERE job_id = ?",
+                     (priority, next_rev(conn), now_iso(), jid))
+    log_event(conn, "priority_set", job_id=job_id, detail=f"{scope}={arg} priority={priority} changed={len(ids)}")
+    return {"priority": priority, "scope": scope, "changed": len(ids)}
 
 
 def mark_done(conn: sqlite3.Connection, job_id: str) -> dict:

@@ -28,7 +28,8 @@ Create:
 {{HC}} send --title "Take tablet" --at 08:00 --repeat daily --days 14
 ```
 Options: `--message "text"`, `--style alarm|alarm-silent|banner|banner-silent` (default alarm), `--category name`,
-`--group name` (reminders in one group cancel each other when the user taps Done), `--expires MINUTES` (default 120).
+`--group name` (reminders in one group cancel each other when the user taps Done), `--expires MINUTES` (default 120),
+`--priority` (opens full screen on the phone even while it is in use: only when the user says it is important).
 
 Use the user's local time, 24-hour clock. If am/pm or the day is unclear, ask before sending.
 

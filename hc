@@ -125,6 +125,7 @@ def cmd_send(a):
         body = {
             "title": a.title, "message": a.message or "", "fire_at": utc(when), "tz": a.tz or local_tz_name(),
             "category": a.category, "delivery": delivery, "sound_profile": sound, "actions": DEFAULT_ACTIONS,
+            "priority": "high" if a.priority else "normal",
         }
         if not a.no_expiry:
             body["expires_at"] = utc(when + timedelta(minutes=a.expires))
@@ -232,6 +233,7 @@ def main():
     s.add_argument("--in", dest="in", help="30m, 2h or 1d from now")
     s.add_argument("--style", default="alarm", help=" | ".join(STYLES))
     s.add_argument("--category", default="generic")
+    s.add_argument("--priority", action="store_true", help="open full screen on the phone even while it is in use")
     s.add_argument("--group", help="reminders sharing a group cancel each other when one is answered Done")
     s.add_argument("--repeat", help="daily")
     s.add_argument("--days", type=int, default=7, help="how many days with --repeat daily (max 60)")

@@ -73,9 +73,39 @@ class AlarmService : Service() {
         startAsForeground(NotificationHelper.ringingNotification(this, job))
         store.log("alarm", "ringing ${job.jobId} (${job.title})")
         startSound(job)
+        if (job.priority != "normal") showFullScreen(job)
         main.removeCallbacks(autoStop)
         main.postDelayed(autoStop, RING_TIMEOUT_MS)
         return START_NOT_STICKY
+    }
+
+    /**
+     * Priority reminders open the alarm screen straight away, even while another app is in use. Android only shows a
+     * banner in that case, so this needs the "display over other apps" permission; a tiny invisible overlay window
+     * is shown for a moment so Android lets the screen open from the background.
+     */
+    private fun showFullScreen(job: Job) {
+        if (!android.provider.Settings.canDrawOverlays(this)) return
+        val wm = getSystemService(android.view.WindowManager::class.java)
+        val marker = android.view.View(this)
+        val params = android.view.WindowManager.LayoutParams(
+            1, 1, android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            android.graphics.PixelFormat.TRANSLUCENT,
+        )
+        runCatching { wm.addView(marker, params) }
+        try {
+            startActivity(
+                Intent(this, com.hermes.companion.AlarmActivity::class.java)
+                    .putExtra(com.hermes.companion.AlarmActivity.EXTRA_JOB, job.jobId)
+                    .putExtra(com.hermes.companion.AlarmActivity.EXTRA_RINGING, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            )
+            Store.get(this).log("alarm", "priority full screen for ${job.jobId}")
+        } catch (e: Exception) {
+            Store.get(this).log("alarm", "priority full screen failed for ${job.jobId}: ${e.message}")
+        }
+        main.postDelayed({ runCatching { wm.removeView(marker) } }, 3_000)
     }
 
     private fun placeholderJob() = Job(

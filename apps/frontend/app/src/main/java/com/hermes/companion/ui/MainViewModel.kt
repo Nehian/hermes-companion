@@ -158,11 +158,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         say("This phone is no longer paired.")
     }
 
-    fun testAlarm() {
+    fun testAlarm(priority: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
-            store.insertLocalTestJob(System.currentTimeMillis() + 10_000)
+            store.insertLocalTestJob(System.currentTimeMillis() + 10_000, if (priority) "high" else "normal")
             AlarmScheduler.reconcile(getApplication())
-            say("Test alarm will ring in 10 seconds.")
+            say(if (priority) "Priority test alarm will ring in 10 seconds. Open another app now to see it take over the screen." else "Test alarm will ring in 10 seconds.")
         }
     }
 }
