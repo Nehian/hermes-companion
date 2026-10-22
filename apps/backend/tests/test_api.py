@@ -191,3 +191,16 @@ def test_network_allowlist(tmp_path, monkeypatch):
         with TestClient(from_ip(ip)) as c:
             assert c.get("/health").status_code == expected, ip
             assert c.post("/admin/pairing-codes", headers=ADMIN).status_code == (200 if expected == 200 else 403), ip
+
+
+def test_pairing_code_lifetime_is_adjustable_and_capped(client):
+    from datetime import datetime, timezone
+
+    def minutes_left(url):
+        r = client.post(url, headers=ADMIN).json()["expires_at"]
+        return (datetime.fromisoformat(r.replace("Z", "+00:00")) - datetime.now(timezone.utc)).total_seconds() / 60
+
+    assert 14 < minutes_left("/admin/pairing-codes") <= 15
+    assert 59 < minutes_left("/admin/pairing-codes?minutes=60") <= 60
+    assert client.post("/admin/pairing-codes?minutes=121", headers=ADMIN).status_code == 422
+    assert client.post("/admin/pairing-codes?minutes=0", headers=ADMIN).status_code == 422

@@ -13,6 +13,7 @@ router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)], tags=
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 PAIRING_TTL_MIN = 15
+PAIRING_TTL_MAX_MIN = 120
 
 
 def _guard(fn):
@@ -25,10 +26,13 @@ def _guard(fn):
 
 
 @router.post("/pairing-codes")
-def create_pairing_code(conn: sqlite3.Connection = Depends(get_db)):
+def create_pairing_code(
+    minutes: int = Query(default=PAIRING_TTL_MIN, ge=1, le=PAIRING_TTL_MAX_MIN),
+    conn: sqlite3.Connection = Depends(get_db),
+):
     code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(8))
     now = datetime.now(timezone.utc)
-    expires = fmt(now + timedelta(minutes=PAIRING_TTL_MIN))
+    expires = fmt(now + timedelta(minutes=minutes))
     with tx(conn):
         conn.execute(
             "INSERT INTO pairing_codes(code_hash, created_at, expires_at) VALUES (?, ?, ?)",
