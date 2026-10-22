@@ -1,0 +1,21 @@
+services:
+  api:
+    build: ../apps/backend
+    container_name: hermes-companion-api
+    restart: unless-stopped
+    user: "1000:1000"
+    env_file: .env
+    environment:
+      DB_PATH: /data/hermes.db
+      # Comma-separated CIDRs allowed to reach the API. Default: this machine, Docker bridges, Tailscale (100.64.0.0/10).
+      ALLOWED_NETS: "${ALLOWED_NETS:-127.0.0.0/8,100.64.0.0/10,172.16.0.0/12}"
+    ports:
+      # Localhost only by default. Set BIND_ADDRESS=0.0.0.0 (and keep ALLOWED_NETS tight) to let your phone reach it.
+      - "${BIND_ADDRESS:-127.0.0.1}:8020:8000"
+    volumes:
+      - ../data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

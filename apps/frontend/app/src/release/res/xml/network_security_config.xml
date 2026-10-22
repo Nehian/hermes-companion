@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Release builds only talk HTTPS by default.
+
+  Running your server over a private network that already encrypts traffic (for example Tailscale/WireGuard) without a
+  certificate? Allow plain HTTP for exactly that address by adding a block like this, then rebuild:
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">100.64.0.10</domain>
+    </domain-config>
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>
