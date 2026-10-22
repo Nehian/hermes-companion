@@ -2,7 +2,7 @@
 
 **Reminders you cannot miss. Your AI assistant (or any script) schedules real alarms on your Android phone, and the phone rings them by itself, even offline and on silent.**
 
-Version 0.3.0 · Android · open source (Apache-2.0) · runs on your own computer, no account, no subscription
+Version 0.4.0 · Android · open source (Apache-2.0) · runs on your own computer, no account, no subscription
 
 ![The dashboard: three reminders you can edit, switch off or mark done](docs/images/dashboard-today.png)
 
@@ -111,7 +111,7 @@ Server address:  100.x.x.x
 Pairing code:    ABCD2345     (valid for 60 minutes, works once)
 ```
 
-**3. Install the app.** On your phone, open the [latest release](https://github.com/Nehian/hermes-companion/releases/latest), download `HermesCompanion-0.3.0.apk` and open it. Android will ask you to allow installing from this source. Say yes.
+**3. Install the app.** On your phone, open the [latest release](https://github.com/Nehian/hermes-companion/releases/latest), download `HermesCompanion-0.4.0.apk` and open it. Android will ask you to allow installing from this source. Say yes.
 
 **4. Pair the phone.** Open the app, go to **Settings**, type the **server address** and the **pairing code**, and tap **Pair**. Then tap **Allow** on each row that says "Needs attention" (alarms, full-screen, battery, and *show priority alarms over other apps*). Tap **Ring a test alarm** to hear it, and **Ring a priority test alarm**, then open another app, to see a priority alarm take over the screen.
 
@@ -211,4 +211,4 @@ The server stores reminders and answers. The phone downloads the schedule, sets 
 For the full technical reference see [docs/API.md](docs/API.md). To build the app or run the server by hand, see [docs/BUILD.md](docs/BUILD.md).
 
 ## Can I help?
-Yes. Apache License 2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE). Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Yes. Apache License 2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE). Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). The app's look and its tokens are described in [docs/DESIGN.md](docs/DESIGN.md).

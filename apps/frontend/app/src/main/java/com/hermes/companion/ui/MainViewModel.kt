@@ -30,6 +30,8 @@ data class JobRow(
     val state: String,
     val answerLabel: String?,
     val open: Boolean,
+    val group: String?,
+    val priority: Boolean,
 )
 
 data class UiState(
@@ -82,6 +84,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         state = job.localState,
         answerLabel = job.resolvedActionId?.let { id -> job.actions.firstOrNull { it.actionId == id }?.label },
         open = job.isOpen,
+        group = job.cancelGroup,
+        priority = job.priority != "normal",
     )
 
     private fun buildState(): UiState {
