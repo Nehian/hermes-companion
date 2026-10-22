@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Release builds only talk HTTPS by default.
-
-  Running your server over a private network that already encrypts traffic (for example Tailscale/WireGuard) without a
-  certificate? Allow plain HTTP for exactly that address by adding a block like this, then rebuild:
-
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">100.64.0.10</domain>
-    </domain-config>
+  Android lets the app use plain http:// here; the app itself refuses it for anything except Tailscale, home-network
+  and loopback addresses (see Api.requireSafeUrl). Public servers must use https://.
 -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

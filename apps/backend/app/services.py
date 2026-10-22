@@ -153,6 +153,37 @@ def cancel_job(conn: sqlite3.Connection, job_id: str) -> dict:
     return job_to_dict(get_job(conn, job_id))
 
 
+def enable_job(conn: sqlite3.Connection, job_id: str) -> dict:
+    """Switch a cancelled reminder back on, as long as its time has not passed."""
+    row = get_job(conn, job_id)
+    if row["state"] != "cancelled":
+        raise Conflict(f"job is {row['state']}")
+    if row["fire_at"] <= now_iso():
+        raise Conflict("this reminder's time has already passed")
+    conn.execute(
+        "UPDATE jobs SET state = 'scheduled', revision = ?, updated_at = ? WHERE job_id = ?",
+        (next_rev(conn), now_iso(), job_id),
+    )
+    log_event(conn, "job_enabled", job_id=job_id)
+    return job_to_dict(get_job(conn, job_id))
+
+
+def mark_done(conn: sqlite3.Connection, job_id: str) -> dict:
+    """The owner says this is done (for example ticked on the dashboard): the whole group is answered and cancelled."""
+    row = get_job(conn, job_id)
+    if row["cancel_group"]:
+        return resolve_group(conn, row["cancel_group"], "completed", "marked done on the dashboard")
+    now = now_iso()
+    cancel_job(conn, job_id)
+    conn.execute(
+        """INSERT INTO responses(response_id, job_id, device_id, action_id, outcome, responded_at, received_at, note, applied)
+           VALUES (?, ?, 'dashboard', 'dashboard-done', 'completed', ?, ?, 'marked done on the dashboard', 1)""",
+        ("dash-" + uuid.uuid4().hex, job_id, now, now),
+    )
+    log_event(conn, "job_marked_done", job_id=job_id)
+    return {"job_id": job_id, "outcome": "completed"}
+
+
 def cancel_group(conn: sqlite3.Connection, group: str, except_job: str | None = None) -> list[str]:
     rows = conn.execute(
         "SELECT job_id FROM jobs WHERE cancel_group = ? AND state IN ('scheduled', 'fired') AND job_id != ?",

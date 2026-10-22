@@ -34,6 +34,15 @@ if [ ! -f .env ]; then
   umask 077
   printf 'ADMIN_KEY=%s\nBIND_ADDRESS=0.0.0.0\n' "$(openssl rand -hex 32)" > .env
 fi
+if ! grep -q '^HC_SUBNET=' .env; then
+  taken="$(docker network ls -q | xargs docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}' 2>/dev/null | tr '\n' ' ')"
+  SUBNET=""
+  for p in 172.16 172.31 172.30 172.29 172.28 172.27 172.26 172.25 172.24 172.23 172.22 172.21 172.20 172.19 172.18 172.17; do
+    case " $taken" in *" $p."*) ;; *) SUBNET="$p.250.0/24"; break ;; esac
+  done
+  [ -n "$SUBNET" ] || stop "Could not find a free private network range for Docker."
+  printf 'HC_SUBNET=%s\n' "$SUBNET" >> .env
+fi
 mkdir -p ../data
 export HC_UID="$(id -u)" HC_GID="$(id -g)"
 
@@ -46,6 +55,7 @@ until curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; do
   sleep 2
 done
 
+mkdir -p "$HOME/.local/bin" 2>/dev/null && ln -sf "$DIR/hc" "$HOME/.local/bin/hc" 2>/dev/null || true
 KEY="$(sed -n 's/^ADMIN_KEY=//p' .env)"
 CODE="$(curl -fsS -X POST -H "X-Admin-Key: $KEY" "http://127.0.0.1:$PORT/admin/pairing-codes?minutes=60" \
   | sed -n 's/.*"pairing_code":"\([A-Z0-9]*\)".*/\1/p')"
@@ -62,5 +72,6 @@ Next: install the Hermes Companion app on your phone, open Settings,
 type the server address and the pairing code.
 
 Need a new code later?   $DIR/pair.sh
+Command for you and your assistant:   $DIR/hc
 Your secret admin key is stored in $DIR/docker/.env (keep it private).
 MSG

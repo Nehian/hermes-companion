@@ -25,13 +25,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import android.media.RingtoneManager
 import com.hermes.companion.BuildConfig
+import com.hermes.companion.data.Store
 
 @Composable
 fun SettingsScreen(state: UiState, vm: MainViewModel) {
@@ -53,7 +59,7 @@ fun SettingsScreen(state: UiState, vm: MainViewModel) {
 
         Text("Connection", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
-            value = url, onValueChange = { url = it }, label = { Text("Server address") },
+            value = url, onValueChange = { url = it }, label = { Text("Server address (for example 100.64.0.5)") },
             singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
         if (!state.registered) {
@@ -69,6 +75,9 @@ fun SettingsScreen(state: UiState, vm: MainViewModel) {
             OutlinedButton(onClick = vm::forget, modifier = Modifier.fillMaxWidth()) { Text("Forget this pairing") }
         }
         state.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
+
+        HorizontalDivider()
+        SoundSection(context)
 
         HorizontalDivider()
         Text("Permissions", style = MaterialTheme.typography.titleMedium)
@@ -118,5 +127,54 @@ private fun PermRow(label: String, granted: Boolean, buttonText: String, onClick
             )
         }
         if (!granted) OutlinedButton(onClick = onClick) { Text(buttonText) }
+    }
+}
+
+@Composable
+private fun SoundSection(context: Context) {
+    val store = remember { Store.get(context) }
+    var ringtone by remember { mutableStateOf(store.ringtoneUri) }
+    var volume by remember { mutableFloatStateOf(store.volumePercent.toFloat()) }
+    var vibrate by remember { mutableStateOf(store.alwaysVibrate) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val uri = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+            ringtone = uri?.toString()
+            store.ringtoneUri = ringtone
+        }
+    }
+    val name = remember(ringtone) {
+        ringtone?.let { runCatching { RingtoneManager.getRingtone(context, Uri.parse(it)).getTitle(context) }.getOrNull() }
+            ?: "Phone default alarm sound"
+    }
+
+    Text("Sound", style = MaterialTheme.typography.titleMedium)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Alarm tone", style = MaterialTheme.typography.bodyLarge)
+        Text(name, style = MaterialTheme.typography.bodyMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = {
+                picker.launch(
+                    Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
+                        .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+                        .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                        .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                        .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, ringtone?.let { Uri.parse(it) }),
+                )
+            }) { Text("Choose tone") }
+            if (ringtone != null) OutlinedButton(onClick = { ringtone = null; store.ringtoneUri = null }) { Text("Use default") }
+        }
+    }
+    Column {
+        Text("Alarm loudness: ${volume.toInt()}%", style = MaterialTheme.typography.bodyLarge)
+        Slider(
+            value = volume, onValueChange = { volume = it }, valueRange = 10f..100f,
+            onValueChangeFinished = { store.volumePercent = volume.toInt() },
+        )
+        Text("Scales the alarm volume of the phone. Use the volume keys for the overall level.", style = MaterialTheme.typography.bodyMedium)
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Always vibrate", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Switch(checked = vibrate, onCheckedChange = { vibrate = it; store.alwaysVibrate = it })
     }
 }

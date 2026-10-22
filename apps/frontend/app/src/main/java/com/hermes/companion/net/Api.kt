@@ -12,7 +12,32 @@ object Api {
 
     data class SyncPayload(val serverRev: Long, val jobs: List<JSONObject>)
 
-    fun normalizeUrl(raw: String): String = raw.trim().trimEnd('/')
+    /** "100.64.0.5" becomes "http://100.64.0.5:8020"; a full address is kept as typed. */
+    fun normalizeUrl(raw: String): String {
+        var s = raw.trim().trimEnd('/')
+        if (s.isEmpty()) return s
+        if (!s.contains("://")) s = "http://$s"
+        val u = runCatching { URL(s) }.getOrNull() ?: return s
+        if (u.protocol == "http" && u.port == -1 && u.path.isEmpty()) s = "$s:8020"
+        return s
+    }
+
+    /** Plain http:// is allowed only to this phone's own networks (Tailscale, home Wi-Fi, loopback). Everything else needs https://. */
+    fun isPrivateHost(host: String): Boolean {
+        val h = host.lowercase()
+        if (h == "localhost" || h.endsWith(".local") || h.endsWith(".ts.net")) return true
+        val parts = h.split('.')
+        if (parts.size != 4) return false
+        val p = parts.map { it.toIntOrNull() ?: return false }
+        return p[0] == 10 || p[0] == 127 || (p[0] == 192 && p[1] == 168) || (p[0] == 172 && p[1] in 16..31) ||
+            (p[0] == 100 && p[1] in 64..127) || (p[0] == 169 && p[1] == 254)
+    }
+
+    fun requireSafeUrl(url: String) {
+        val u = URL(url)
+        if (u.protocol == "https" || (u.protocol == "http" && isPrivateHost(u.host))) return
+        throw ApiException(0, "Plain http:// is only allowed to Tailscale or home-network addresses. Use https:// for any other server.")
+    }
 
     private fun request(
         method: String,
@@ -22,6 +47,7 @@ object Api {
         connectMs: Int,
         readMs: Int,
     ): JSONObject {
+        requireSafeUrl(url)
         val conn = URL(url).openConnection() as HttpURLConnection
         try {
             conn.requestMethod = method

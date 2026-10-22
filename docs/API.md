@@ -70,3 +70,20 @@ The action `type` is validated against that list: nothing else can be sent to th
 - Answers that name an unknown job or action are stored with `applied: 0`.
 - Jobs expire server-side lazily, on the next sync or admin list.
 - Revisions only increase; the phone keeps the highest one it applied as its cursor.
+
+
+## Pairing codes: lifetime
+
+`POST /admin/pairing-codes` creates a single-use code. By default it is valid for 15 minutes; add `?minutes=N` (1 to 120) for longer. The installer and `pair.sh` ask for 60.
+
+## Dashboard (optional)
+
+Served at `/dashboard` only when `DASHBOARD_PASSWORD_HASH` is set (run `dashboard.sh`). Sign in with `POST /dashboard/login` `{ "password": "…" }`, which sets a signed `HttpOnly`, `SameSite=Strict` cookie. Then:
+
+| call | purpose |
+|---|---|
+| `GET /dashboard/api/state` | reminders (last 14 days to next 8), phone answers, paired phones (no keys or tokens) |
+| `PATCH /dashboard/api/reminders/{job_id}` | change `title`, `fire_at` (or `time` as `HH:MM` in the reminder's own timezone), `style` (`alarm`, `alarm-silent`, `banner`, `banner-silent`) or `enabled` |
+| `POST /dashboard/api/reminders/{job_id}/done` | mark the reminder's whole group done (records a "completed" answer) |
+
+Switching a reminder off cancels it; switching it back on is allowed until its time has passed.

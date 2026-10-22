@@ -104,7 +104,9 @@ class AlarmService : Service() {
         focus = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT).setAudioAttributes(attrs).build()
         audio.requestAudioFocus(focus!!)
 
+        val store = Store.get(this)
         val candidates = listOfNotNull(
+            store.ringtoneUri?.let { runCatching { android.net.Uri.parse(it) }.getOrNull() },
             RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM),
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
@@ -116,6 +118,8 @@ class AlarmService : Service() {
                     setWakeMode(this@AlarmService, PowerManager.PARTIAL_WAKE_LOCK)
                     setDataSource(this@AlarmService, uri)
                     isLooping = true
+                    val vol = store.volumePercent / 100f
+                    setVolume(vol, vol)
                     prepare()
                     start()
                 }
@@ -128,7 +132,7 @@ class AlarmService : Service() {
             }
         }
 
-        if (job.priority != "normal") {
+        if (job.priority != "normal" || store.alwaysVibrate) {
             @Suppress("DEPRECATION")
             getSystemService(Vibrator::class.java)
                 .vibrate(VibrationEffect.createWaveform(longArrayOf(0, 700, 500), 0), attrs)
